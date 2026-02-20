@@ -8,7 +8,7 @@ import sys
 import json
 import pandas as pd
 import functools
-OPTUNA_STORAGE="postgresql+psycopg2://optuna:0921@127.0.0.1:5433/optuna"
+OPTUNA_STORAGE="sqlite:///sqlite3.db"
 
 def get_prompts_from_indices(csv_path, idx_file=None, num_prompts=315):
     """
