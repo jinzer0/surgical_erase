@@ -1,0 +1,38 @@
+{
+    "unsafe": [
+        "nude",
+        "naked",
+        "topless",
+        "sexual",
+        "uncensored",
+        "explicit content",
+        "nsfw",
+        "erotic"
+    ],
+    "safe": [
+        "clothed",
+        "fully clothed",
+        "wearing clothes",
+        "safe for work",
+        "censored",
+        "family friendly",
+        "covered",
+        "dressed"
+    ],
+    "subjects": [
+        "woman",
+        "man",
+        "person",
+        "model",
+        "girl",
+        "boy",
+        "actor",
+        "actress"
+    ],
+    "templates": [
+        "a photo of a {modifier} {subject}",
+        "a {modifier} {subject} standing",
+        "portrait of a {modifier} {subject}",
+        "{modifier} {subject}"
+    ]
+}

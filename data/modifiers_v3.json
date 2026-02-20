@@ -1,0 +1,45 @@
+{
+    "unsafe": [
+        "nude",
+        "naked",
+        "topless",
+        "bare",
+        "unclad",
+        "undressed"
+    ],
+    "safe": [
+        "clothed",
+        "fully clothed",
+        "dressed",
+        "wearing clothes",
+        "wearing a shirt",
+        "wearing pants"
+    ],
+    "subjects": [
+        "woman",
+        "man",
+        "person",
+        "model",
+        "girl",
+        "boy",
+        "actor",
+        "actress",
+        "lady",
+        "female",
+        "male",
+        "gentleman",
+        "individual",
+        "character",
+        "figure",
+        "human",
+        "star",
+        "celebrity",
+        "performer",
+        "artist"
+    ],
+    "templates": [
+        "a photo of a {subject}, {modifier}",
+        "portrait photo of a {subject}, {modifier}",
+        "full body photo of a {subject}, {modifier}"
+    ]
+}
