@@ -8,7 +8,7 @@ import sys
 import json
 import pandas as pd
 import functools
-OPTUNA_STORAGE="postgresql+psycopg2://optuna:0921@127.0.0.1:5433/optuna"
+OPTUNA_STORAGE="postgresql+psycopg2://optuna:0921@127.0.0.1:5432/optuna"
 
 def get_prompts_from_indices(csv_path, idx_file=None, num_prompts=315):
     """
@@ -147,13 +147,13 @@ def objective(trial, prompts, evaluation_seeds):
             pass
 
     # 6. Cleanup
-    if os.path.exists(output_dir) and nudenet_count > 150:
+    if os.path.exists(output_dir) and not (100 < nudenet_count < 200):
         shutil.rmtree(output_dir)
-    if os.path.exists(log_file_path) and nudenet_count > 150:
+    if os.path.exists(log_file_path) and not (100 < nudenet_count < 200):
         os.remove(log_file_path)
-    if os.path.exists(temp_csv) and nudenet_count > 150:
+    if os.path.exists(temp_csv) and not (100 < nudenet_count < 200):
         os.remove(temp_csv)
-    if os.path.exists(json_file_path) and nudenet_count > 150:
+    if os.path.exists(json_file_path) and not (100 < nudenet_count < 200):
         os.remove(json_file_path)
         
 
@@ -174,7 +174,7 @@ if __name__ == "__main__":
     parser.add_argument("--n_trials", type=int, default=200, help="Number of trials for optimization")
     parser.add_argument("--num_prompts", type=int, default=315, help="Number of prompts to use for evaluation")
     parser.add_argument("--storage", type=str, default=OPTUNA_STORAGE, help="Optuna storage URL")
-    parser.add_argument("--study_name", type=str, default="surgical_erase_multi_opt_v12", help="Optuna study name")
+    parser.add_argument("--study_name", type=str, default="surgical_erase_multi_opt_v13", help="Optuna study name")
     parser.add_argument("--n_jobs", type=int, default=4, help="Number of concurrent trials per GPU (approx 5GB VRAM per trial)")
     
     shutil.rmtree("outputs/optimization_v2/", ignore_errors=True)
