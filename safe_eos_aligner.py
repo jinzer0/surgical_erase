@@ -69,6 +69,7 @@ class SafeEOSAligner:
         # State for temporal consistency
         self.s_smooth = None
         self.fixed_mask_indices = None
+        self.cached_delta_par = None
         
         # Logging
         self.stats = []
@@ -76,6 +77,7 @@ class SafeEOSAligner:
     def reset_state(self):
         self.s_smooth = None
         self.fixed_mask_indices = None
+        self.cached_delta_par = None
         self.stats = []
 
     def project(self, x):
@@ -295,32 +297,28 @@ class SafeEOSAligner:
              E_cond_new = e_perp + e_par_new + d_inject
 
         elif self.align_mode == "eos_delta":
-            # EOS-Delta Logic:
-            # delta = (steering_scale * v_safe) - P_U(e_eos)
-            # This subtracts the specific nudity component of the current EOS
-            # and adds the global safety vector.
-            # Unlike 'combined', this relies on the EOS context for the nudity removal.
-
-            # 1. Calculate Nudity Component of EOS
-            # e_eos: (B, D)
-            e_eos_nudity = self.project(e_eos) # (B, D)
-
-            # 2. Calculate Delta Target Direction
-            # direction = v_safe - e_eos_nudity
-            # We assume v_safe is (D,) -> broadcast to (B, D)
-            direction = self.v_safe - e_eos_nudity # (B, D)
+            # EOS Anchor Steering Logic (Subspace-Preserving):
+            # User concept: Safe_EOS_Anchor = e_eos - P_U(e_eos) + v_safe
+            # Delta_EOS = Safe_EOS_Anchor - e_eos = v_safe - P_U(e_eos)
             
-            # Normalize direction to prevent explosive changes
-            direction_norm = torch.norm(direction, dim=-1, keepdim=True) + 1e-8
-            delta = (direction / direction_norm) * self.steering_scale # (B, D)
-
-            # 3. Apply Delta
-            # E_cond_new = E_cond + alpha * delta
-            # alpha_exp: (B, L, 1)
-            # delta: (B, D) -> (B, 1, D)
-            delta_expanded = delta.unsqueeze(1)
+            # Cache the original anchor displacement at the beginning so it points 
+            # steadily towards the fixed target across all denoising steps.
+            if self.cached_delta_par is None:
+                e_eos_nudity = self.project(e_eos) # (B, D)
+                v_safe_scaled = self.v_safe * self.steering_scale
+                
+                # The 'Correction Vector' derived from the original EOS context
+                delta_eos = v_safe_scaled - e_eos_nudity # (B, D)
+                delta_eos_expanded = delta_eos.unsqueeze(1) # (B, 1, D)
+                
+                # CRITICAL STABILITY FIX:
+                # Apply the EOS-Delta ONLY to the Subspace projection (e_par).
+                self.cached_delta_par = self.project(delta_eos_expanded) # (B, 1, D)
             
-            E_cond_new = E_cond + (alpha_exp * delta_expanded)
+            delta_par = self.cached_delta_par
+            e_par_new = e_par + (alpha_exp * delta_par)
+            
+            E_cond_new = e_perp + e_par_new
 
         else: # eradicate
             target_par = torch.zeros_like(e_par)

@@ -47,24 +47,24 @@ def objective(trial, prompts, evaluation_seeds):
     # tau: Clamp Limit (Magitude of projection)
     # Analysis: Naked (~2.6), Neutral Person (~1.0), Dog (~0.8)
     # Range: 1.0 (Neutral) ~ 3.0 (Allow strong nudity, just cap extreme outlier)
-    tau = trial.suggest_float("tau", 0.7, 1.5)
+    tau = trial.suggest_float("tau", 1.0, 1.5)
     
     # We define them here properly
     T = trial.suggest_float("T", 0.1, 0.25)
-    alpha_max = trial.suggest_float("alpha_max", 0.4, 0.8)
-    top_m = trial.suggest_int("top_m", 2, 10)
-    eta = trial.suggest_float("eta", 0.05, 0.15)
-    ridge = trial.suggest_float("ridge", 20.0, 100.0)
+    alpha_max = trial.suggest_float("alpha_max", 0.6, 1.0)
+    top_m = trial.suggest_int("top_m", 8, 30)
+    eta = trial.suggest_float("eta", 0.08, 0.2)
+    ridge = trial.suggest_float("ridge", 40.0, 100.0)
     # steering_scale: Orthogonal Injection uses full vector magnitude.
     # Scaled down to prevent noise in eos_delta.
-    steering_scale = trial.suggest_float("steering_scale", 0.5, 1.5)
+    steering_scale = trial.suggest_float("steering_scale", 1.0, 3.0)
 
     # start_step: Delayed Steering (0 ~ 30)
-    start_step = trial.suggest_int("start_step", 3, 15)
+    start_step = trial.suggest_int("start_step", 1, 10)
     
     # end_step: Range-Bounded Steering (25 ~ 50)
     # Allows early stopping of intervention to recover details.
-    end_step = trial.suggest_int("end_step", 25, 50)
+    end_step = trial.suggest_int("end_step", 35, 50)
 
     # 2. Setup trial-specific paths
     import uuid
@@ -80,12 +80,10 @@ def objective(trial, prompts, evaluation_seeds):
     os.makedirs(output_dir, exist_ok=True)
     
     # Use global prompts list
-    df_prompts = pd.DataFrame({"prompt": prompts, "evaluation_seed": evaluation_seeds})
-    df_prompts.to_csv(temp_csv, index=False)
     
     cmd_inference = [
         python_executable, "inference.py",
-        "--csvfile", os.path.abspath(temp_csv),
+        "--csvfile", "./unsafe_prompt315.csv",
         "--output_dir", output_dir,
         "--fp16",
         "--align_mode", "eos_delta",
@@ -174,7 +172,7 @@ if __name__ == "__main__":
     parser.add_argument("--n_trials", type=int, default=200, help="Number of trials for optimization")
     parser.add_argument("--num_prompts", type=int, default=315, help="Number of prompts to use for evaluation")
     parser.add_argument("--storage", type=str, default=OPTUNA_STORAGE, help="Optuna storage URL")
-    parser.add_argument("--study_name", type=str, default="surgical_erase_multi_opt_v13", help="Optuna study name")
+    parser.add_argument("--study_name", type=str, default="surgical_erase_multi_opt_v14", help="Optuna study name")
     parser.add_argument("--n_jobs", type=int, default=4, help="Number of concurrent trials per GPU (approx 5GB VRAM per trial)")
     
     shutil.rmtree("outputs/optimization_v2/", ignore_errors=True)
