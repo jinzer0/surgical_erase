@@ -3,8 +3,8 @@ import pandas as pd
 import sys
 
 # Configuration from bayesian_search.py
-STORAGE = "postgresql+psycopg2://optuna:0921@127.0.0.1:5433/optuna"
-STUDY_NAME = "surgical_erase_multi_opt_v7"
+STORAGE = "postgresql+psycopg2://optuna:0921@127.0.0.1:5432/optuna"
+STUDY_NAME = "surgical_erase_multi_opt_v15"
 
 def analyze():
     print(f"Loading study '{STUDY_NAME}' from {STORAGE}...")

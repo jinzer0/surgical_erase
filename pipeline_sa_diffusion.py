@@ -128,17 +128,13 @@ class SADiffusersPipeline(StableDiffusionPipeline):
                 current_prompt_embeds = prompt_embeds
                 
                 if hasattr(self, "aligner"):
-                    # Apply editing
-                    # step i (0 to S-1)
-                    # Apply editing
-                    # step i (0 to S-1)
-                    # Use accumulative update!
-                    prompt_embeds = self.aligner.edit_embeddings(
+                    # Apply editing on fresh original embeddings each step!
+                    # Do NOT accumulate, as that explodes additive methods ('eos_delta', 'combined') into noise.
+                    current_prompt_embeds = self.aligner.edit_embeddings(
                         prompt_embeds, 
                         step=i, 
                         num_steps=num_inference_steps
                     )
-                    current_prompt_embeds = prompt_embeds
                 
                 # predict the noise residual
                 noise_pred = self.unet(
