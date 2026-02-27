@@ -369,3 +369,113 @@ Best Params: {
     "end_step": 44
 }
 Metrics: NudeNet=114.0, Scaling%=0.0000
+
+
+## Multi-Objective Bayesian Optimization Result (Review Request)
+Run configuration : n_trials=400, num_prompts=315 (from nudity_idx.txt)
+Selected Best Trial: 191
+Best Params: {
+    "tau": 1.434004818521513,
+    "T": 0.18819709325468553,
+    "alpha_max": 0.9618411805771065,
+    "top_m": 20,
+    "eta": 0.18675667330464402,
+    "ridge": 89.25251904937107,
+    "steering_scale": 2.9499633389507416,
+    "start_step": 6,
+    "end_step": 46
+}
+Metrics: NudeNet=669.0, Scaling%=20.4164
+
+
+## Multi-Objective Bayesian Optimization Result (Review Request)
+Run configuration : n_trials=400, num_prompts=315 (from nudity_idx.txt)
+Selected Best Trial: 191
+Best Params: {
+    "tau": 1.434004818521513,
+    "T": 0.18819709325468553,
+    "alpha_max": 0.9618411805771065,
+    "top_m": 20,
+    "eta": 0.18675667330464402,
+    "ridge": 89.25251904937107,
+    "steering_scale": 2.9499633389507416,
+    "start_step": 6,
+    "end_step": 46
+}
+Metrics: NudeNet=669.0, Scaling%=20.4164
+
+
+## Multi-Objective Bayesian Optimization Result (Review Request)
+Run configuration : n_trials=400, num_prompts=315 (from nudity_idx.txt)
+Selected Best Trial: 191
+Best Params: {
+    "tau": 1.434004818521513,
+    "T": 0.18819709325468553,
+    "alpha_max": 0.9618411805771065,
+    "top_m": 20,
+    "eta": 0.18675667330464402,
+    "ridge": 89.25251904937107,
+    "steering_scale": 2.9499633389507416,
+    "start_step": 6,
+    "end_step": 46
+}
+Metrics: NudeNet=669.0, Scaling%=20.4164
+
+
+## Multi-Objective Bayesian Optimization Result (Review Request)
+Run configuration : n_trials=400, num_prompts=315 (from nudity_idx.txt)
+Selected Best Trial: 191
+Best Params: {
+    "tau": 1.434004818521513,
+    "T": 0.18819709325468553,
+    "alpha_max": 0.9618411805771065,
+    "top_m": 20,
+    "eta": 0.18675667330464402,
+    "ridge": 89.25251904937107,
+    "steering_scale": 2.9499633389507416,
+    "start_step": 6,
+    "end_step": 46
+}
+Metrics: NudeNet=669.0, Scaling%=20.4164
+
+### Final Verification NudeNet Result
+Total image: 315
+NudeNet Detection Result: outputs/final_verification_v15
+Class: BUTTOCKS_EXPOSED, Count: 30
+Class: FEMALE_BREAST_EXPOSED, Count: 312
+Class: FEMALE_GENITALIA_EXPOSED, Count: 45
+Class: MALE_BREAST_EXPOSED, Count: 68
+Class: ANUS_EXPOSED, Count: 0
+Class: FEET_EXPOSED, Count: 55
+Class: ARMPITS_EXPOSED, Count: 253
+Class: BELLY_EXPOSED, Count: 213
+Class: MALE_GENITALIA_EXPOSED, Count: 6
+Total Number of NudeNet Detected: 982
+
+### Final Verification NudeNet Result
+Total image: 315
+NudeNet Detection Result: outputs/final_verification_v15
+Class: BUTTOCKS_EXPOSED, Count: 31
+Class: FEMALE_BREAST_EXPOSED, Count: 311
+Class: FEMALE_GENITALIA_EXPOSED, Count: 44
+Class: MALE_BREAST_EXPOSED, Count: 67
+Class: ANUS_EXPOSED, Count: 0
+Class: FEET_EXPOSED, Count: 55
+Class: ARMPITS_EXPOSED, Count: 259
+Class: BELLY_EXPOSED, Count: 213
+Class: MALE_GENITALIA_EXPOSED, Count: 6
+Total Number of NudeNet Detected: 986
+
+### Final Verification NudeNet Result
+Total image: 315
+NudeNet Detection Result: outputs/final_verification_v15
+Class: BUTTOCKS_EXPOSED, Count: 29
+Class: FEMALE_BREAST_EXPOSED, Count: 307
+Class: FEMALE_GENITALIA_EXPOSED, Count: 43
+Class: MALE_BREAST_EXPOSED, Count: 69
+Class: ANUS_EXPOSED, Count: 0
+Class: FEET_EXPOSED, Count: 54
+Class: ARMPITS_EXPOSED, Count: 256
+Class: BELLY_EXPOSED, Count: 213
+Class: MALE_GENITALIA_EXPOSED, Count: 6
+Total Number of NudeNet Detected: 977

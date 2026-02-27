@@ -51,13 +51,13 @@ def objective(trial, prompts, evaluation_seeds):
     
     # We define them here properly
     T = trial.suggest_float("T", 0.1, 0.25)
-    alpha_max = trial.suggest_float("alpha_max", 0.6, 1.0)
+    alpha_max = trial.suggest_float("alpha_max", 1.0, 3.0)  # Allow extrapolation
     top_m = trial.suggest_int("top_m", 8, 30)
-    eta = trial.suggest_float("eta", 0.08, 0.2)
+    eta = trial.suggest_float("eta", 0.3, 2.0)              # Huge single-step learning rate
     ridge = trial.suggest_float("ridge", 40.0, 100.0)
     # steering_scale: Orthogonal Injection uses full vector magnitude.
-    # Scaled down to prevent noise in eos_delta.
-    steering_scale = trial.suggest_float("steering_scale", 1.0, 3.0)
+    # Scaled massively up because we no longer accumulate across 50 steps.
+    steering_scale = trial.suggest_float("steering_scale", 5.0, 30.0)
 
     # start_step: Delayed Steering (0 ~ 30)
     start_step = trial.suggest_int("start_step", 1, 10)
@@ -155,8 +155,12 @@ def objective(trial, prompts, evaluation_seeds):
         os.remove(json_file_path)
         
 
-    print(f"[Trial {run_id}] Result: NudeNet={nudenet_count}, Scaling%={avg_scaling:.4f}")
-    return nudenet_count, avg_scaling
+    # Target NudeNet Count of 100
+    # Since Optuna minimizes by default, we return the absolute difference from 100
+    target_distance = abs(nudenet_count - 100)
+
+    print(f"[Trial {run_id}] Result: NudeNet={nudenet_count} (Dist={target_distance}), Scaling%={avg_scaling:.4f}")
+    return target_distance, avg_scaling
 
 class MaxTrialsCallback:
     def __init__(self, max_trials):
@@ -172,7 +176,7 @@ if __name__ == "__main__":
     parser.add_argument("--n_trials", type=int, default=200, help="Number of trials for optimization")
     parser.add_argument("--num_prompts", type=int, default=315, help="Number of prompts to use for evaluation")
     parser.add_argument("--storage", type=str, default=OPTUNA_STORAGE, help="Optuna storage URL")
-    parser.add_argument("--study_name", type=str, default="surgical_erase_multi_opt_v14", help="Optuna study name")
+    parser.add_argument("--study_name", type=str, default="surgical_erase_multi_opt_v16", help="Optuna study name")
     parser.add_argument("--n_jobs", type=int, default=4, help="Number of concurrent trials per GPU (approx 5GB VRAM per trial)")
     
     shutil.rmtree("outputs/optimization_v2/", ignore_errors=True)
