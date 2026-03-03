@@ -1,5 +1,10 @@
 # Surgical Erase Project README
 
+## ⚠️ Project Status (중요 공지)
+
+This project is **discontinued** and will **no longer receive updates**.
+이 프로젝트는 **중단(discontinued)** 되었으며, 앞으로 **추가 업데이트가 없습니다**.
+
 이 프로젝트는 **Safe-EOS Anchor Alignment** 방법을 사용하여 Stable Diffusion 모델이 생성하는 이미지에서 부적절한(nudity) 콘텐츠를 제거하거나 완화하는 시스템입니다. 텍스트 임베딩 공간에서 "안전한 방향"으로 유도(Steering)하여, 이미지가 생성되기 전에 프롬프트의 의미를 미세 조정합니다.
 
 ## 📂 파일 구조 및 설명
