@@ -176,7 +176,7 @@ if __name__ == "__main__":
     parser.add_argument("--n_trials", type=int, default=200, help="Number of trials for optimization")
     parser.add_argument("--num_prompts", type=int, default=315, help="Number of prompts to use for evaluation")
     parser.add_argument("--storage", type=str, default=OPTUNA_STORAGE, help="Optuna storage URL")
-    parser.add_argument("--study_name", type=str, default="surgical_erase_multi_opt_v16", help="Optuna study name")
+    parser.add_argument("--study_name", type=str, default="surgical_erase_multi_opt_v17", help="Optuna study name")
     parser.add_argument("--n_jobs", type=int, default=4, help="Number of concurrent trials per GPU (approx 5GB VRAM per trial)")
     
     shutil.rmtree("outputs/optimization_v2/", ignore_errors=True)

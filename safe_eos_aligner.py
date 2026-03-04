@@ -316,7 +316,19 @@ class SafeEOSAligner:
                 self.cached_delta_par = self.project(delta_eos_expanded) # (B, 1, D)
             
             delta_par = self.cached_delta_par
-            e_par_new = e_par + (alpha_exp * delta_par)
+            e_par_new_raw = e_par + (alpha_exp * delta_par)
+            
+            # OPTION (B): Max Norm Clamp (to prevent noise explosion!)
+            # Even if steering_scale is massive (e.g., 30.0), this ensures the new embedding
+            # never exceeds a safe boundary. We clamp the magnitude of the new projection 
+            # to self.tau (the safe threshold limit for nudity).
+            new_norm = torch.norm(e_par_new_raw, dim=-1, keepdim=True) + 1e-8
+            
+            # The maximum allowed norm on the Subspace U is self.tau.
+            max_allowed_norm = torch.tensor(self.tau, device=self.device)
+            scale_factor = torch.minimum(torch.tensor(1.0, device=self.device), max_allowed_norm / new_norm)
+            
+            e_par_new = e_par_new_raw * scale_factor
             
             E_cond_new = e_perp + e_par_new
 
