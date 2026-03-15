@@ -1,8 +1,17 @@
+import sys
+from pathlib import Path
+
 import torch
 import torch.nn.functional as F
-from safe_eos_aligner import SafeEOSAligner
-from build_subspace import SubspaceBuilder
 from transformers import CLIPTokenizer, CLIPTextModel
+
+ROOT_DIR = Path(__file__).resolve().parents[1]
+SRC_DIR = ROOT_DIR / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
+
+from surgical_erase.aligners.safe_eos_aligner import SafeEOSAligner
+from surgical_erase.subspace.builder import SubspaceBuilder
 
 def test_steering_effect():
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -11,7 +20,7 @@ def test_steering_effect():
     # 1. Build Real Subspace
     print("Building subspace...")
     builder = SubspaceBuilder(device=device)
-    pairs, safety_pairs = builder.generate_pairs_from_json("data/modifiers.json", 200)
+    pairs, safety_pairs = builder.generate_pairs_from_json(str(ROOT_DIR / "data/modifiers.json"), 200)
     U, lam, v_safe = builder.build(pairs, safety_pairs=safety_pairs, k=5, ridge=60.0)
     
     # 2. Get Real Embedding for "Shirtless"

@@ -1,8 +1,11 @@
 import torch
 import os
+from pathlib import Path
+
+ROOT_DIR = Path(__file__).resolve().parents[1]
 
 def verify():
-    path = "data/subspace.pt"
+    path = ROOT_DIR / "data/subspace.pt"
     if not os.path.exists(path):
         print(f"File {path} not found.")
         return

@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import json
 import argparse
+from pathlib import Path
 
 from tqdm import tqdm
 from transformers import CLIPTextModel, CLIPTokenizer
@@ -217,15 +218,19 @@ class SubspaceBuilder:
 
         return U, lam, v_safe
 
-if __name__ == "__main__":
+def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--json_path", type=str, default="data/modifiers.json")
+    root_dir = Path(__file__).resolve().parents[3]
+    parser.add_argument("--json_path", type=str, default=str(root_dir / "data/modifiers.json"))
     parser.add_argument("--num_pairs", type=int, default=200)
     parser.add_argument("--k", type=int, default=5)
     parser.add_argument("--pair_mode", type=str, default="neutral_unsafe", choices=["safe_unsafe", "neutral_unsafe"])
-    parser.add_argument("--output_path", type=str, default="data/subspace.pt")
-    args = parser.parse_args()
-    
+    parser.add_argument("--output_path", type=str, default=str(root_dir / "data/subspace.pt"))
+    return parser.parse_args()
+
+def main():
+    args = parse_args()
+
     builder = SubspaceBuilder()
     pairs, safety_pairs = builder.generate_pairs_from_json(args.json_path, args.num_pairs, pair_mode=args.pair_mode)
     U, lam, v_safe = builder.build(pairs, safety_pairs=safety_pairs, k=args.k)
@@ -238,3 +243,5 @@ if __name__ == "__main__":
     torch.save(data, args.output_path)
     print(f"Saved subspace to {args.output_path}")
 
+if __name__ == "__main__":
+    main()

@@ -1,8 +1,6 @@
 from diffusers import StableDiffusionPipeline
 import torch
 
-from safe_eos_aligner import SafeEOSAligner
-
 class SADiffusersPipeline(StableDiffusionPipeline):
     """
     Stable Diffusion Pipeline with Prompt-adaptive Safe-EOS Anchor Alignment.
@@ -174,4 +172,3 @@ class SADiffusersPipeline(StableDiffusionPipeline):
 
         from diffusers.pipelines.stable_diffusion import StableDiffusionPipelineOutput
         return StableDiffusionPipelineOutput(images=image, nsfw_content_detected=None)
-

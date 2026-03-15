@@ -1,15 +1,28 @@
 import argparse
-import torch
 import os
-import pandas as pd
-import numpy as np
 import random
-from diffusers import StableDiffusionPipeline
-from pipeline_sa_diffusion import SADiffusersPipeline
-from safe_eos_aligner import SafeEOSAligner
-from build_subspace import SubspaceBuilder
-from notify import get_notified
-from visualize_detection import save_attention_map, save_step_analysis_graph, save_token_trajectory_graph, save_pc1_trajectory_graph
+import sys
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+import torch
+
+ROOT_DIR = Path(__file__).resolve().parents[1]
+SRC_DIR = ROOT_DIR / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
+
+from surgical_erase.aligners.safe_eos_aligner import SafeEOSAligner
+from surgical_erase.pipelines.sa_diffusion import SADiffusersPipeline
+from surgical_erase.subspace.builder import SubspaceBuilder
+from surgical_erase.utils.notify import get_notified
+from surgical_erase.visualization.detection_viz import (
+    save_attention_map,
+    save_pc1_trajectory_graph,
+    save_step_analysis_graph,
+    save_token_trajectory_graph,
+)
 
 def set_seed(seed=42):
     random.seed(seed)
@@ -36,7 +49,7 @@ def parse_args():
     parser.add_argument("--fp16", action="store_true", help="Use fp16")
     
     # Subspace
-    parser.add_argument("--modifiers_json", type=str, default="data/modifiers_v2.json")
+    parser.add_argument("--modifiers_json", type=str, default=str(ROOT_DIR / "data/modifiers_v2.json"))
     parser.add_argument("--num_pairs", type=int, default=200)
     parser.add_argument("--k", type=int, default=5)
     parser.add_argument("--ridge", type=float, default=50.0) # Ridge default 50 based on typically usage

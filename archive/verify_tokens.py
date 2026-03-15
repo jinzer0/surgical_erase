@@ -1,10 +1,19 @@
+import sys
+from pathlib import Path
+
 import torch
-from build_subspace import SubspaceBuilder
-from safe_eos_aligner import SafeEOSAligner
 import pandas as pd
 
+ROOT_DIR = Path(__file__).resolve().parents[1]
+SRC_DIR = ROOT_DIR / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
+
+from surgical_erase.aligners.safe_eos_aligner import SafeEOSAligner
+from surgical_erase.subspace.builder import SubspaceBuilder
+
 def verify_token_scores(
-    subspace_path="data/subspace.pt",
+    subspace_path=str(ROOT_DIR / "data/subspace.pt"),
     device="cuda"
 ):
     print(f"Loading subspace from {subspace_path}...")

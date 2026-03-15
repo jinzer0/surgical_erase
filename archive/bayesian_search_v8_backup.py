@@ -6,11 +6,18 @@ import re
 import argparse
 import sys
 import json
+from pathlib import Path
 import pandas as pd
 import functools
-OPTUNA_STORAGE="postgresql+psycopg2://optuna:0921@127.0.0.1:5432/optuna"
 
-def get_prompts_from_indices(csv_path, idx_file=None, num_prompts=315):
+ROOT_DIR = Path(__file__).resolve().parents[1]
+PROMPTS_DIR = ROOT_DIR / "data" / "prompts"
+DATA_DIR = ROOT_DIR / "data"
+DOCS_DIR = ROOT_DIR / "docs"
+SCRIPTS_DIR = ROOT_DIR / "scripts"
+OPTUNA_STORAGE="postgresql+psycopg2://optuna:0921@127.0.0.1:5433/optuna"
+
+def get_prompts_from_indices(csv_path, idx_file=None, num_prompts=252):
     """
     Read prompts from csv. If idx_file provided, use it. Else use first N.
     """
@@ -43,34 +50,21 @@ def get_prompts_from_indices(csv_path, idx_file=None, num_prompts=315):
     return prompts, evaluation_seeds
 
 def objective(trial, prompts, evaluation_seeds):
-    # 1. Hyperparameters to tune (Analysis-based Search Space v9 - Delayed + Soft Clamp)
-    # tau: Clamp Limit (Magitude of projection)
-    # Analysis: Naked (~2.6), Neutral Person (~1.0), Dog (~0.8)
-    # Range: 1.0 (Neutral) ~ 3.0 (Allow strong nudity, just cap extreme outlier)
-    tau = trial.suggest_float("tau", 1.0, 1.5)
-    
-    # We define them here properly
-    T = trial.suggest_float("T", 0.1, 0.25)
-    alpha_max = trial.suggest_float("alpha_max", 1.0, 3.0)  # Allow extrapolation
-    top_m = trial.suggest_int("top_m", 8, 30)
-    eta = trial.suggest_float("eta", 0.3, 2.0)              # Huge single-step learning rate
-    ridge = trial.suggest_float("ridge", 40.0, 100.0)
-    # steering_scale: Orthogonal Injection uses full vector magnitude.
-    # Scaled massively up because we no longer accumulate across 50 steps.
-    steering_scale = trial.suggest_float("steering_scale", 5.0, 30.0)
-
-    # start_step: Delayed Steering (0 ~ 30)
-    start_step = trial.suggest_int("start_step", 1, 10)
-    
-    # end_step: Range-Bounded Steering (25 ~ 50)
-    # Allows early stopping of intervention to recover details.
-    end_step = trial.suggest_int("end_step", 35, 50)
+    # 1. Hyperparameters to tune (Analysis-based Search Space v8 - Wide Sweep for Sweet Spot)
+    # tau: 0.0 ~ 0.25 (Wider range to see if slightly higher threshold helps)
+    tau = trial.suggest_float("tau", 0.0, 0.25)
+    T = trial.suggest_float("T", 0.05, 0.5)
+    alpha_max = trial.suggest_float("alpha_max", 0.4, 1.0)
+    top_m = trial.suggest_int("top_m", 2, 12)
+    eta = trial.suggest_float("eta", 0.05, 0.5)
+    ridge = trial.suggest_float("ridge", 10.0, 100.0)
+    steering_scale = trial.suggest_float("steering_scale", 5.0, 100.0)
 
     # 2. Setup trial-specific paths
     import uuid
     run_id = f"trial_{trial.number}_{uuid.uuid4().hex[:8]}"
-    output_dir = f"outputs/optimization_v2/{run_id}"
-    temp_csv   = f"{output_dir}/trial_{trial.number}_prompts.csv"
+    output_dir = ROOT_DIR / "outputs" / "optimization" / run_id
+    temp_csv = output_dir / f"trial_{trial.number}_prompts.csv"
     
     # 3. Construct inference command
     python_executable = sys.executable 
@@ -80,24 +74,24 @@ def objective(trial, prompts, evaluation_seeds):
     os.makedirs(output_dir, exist_ok=True)
     
     # Use global prompts list
+    df_prompts = pd.DataFrame({"prompt": prompts, "evaluation_seed": evaluation_seeds})
+    df_prompts.to_csv(temp_csv, index=False)
     
     cmd_inference = [
-        python_executable, "inference.py",
-        "--csvfile", "./unsafe_prompt315.csv",
-        "--output_dir", output_dir,
+        python_executable, str(SCRIPTS_DIR / "run_inference.py"),
+        "--csvfile", str(temp_csv),
+        "--output_dir", str(output_dir),
         "--fp16",
-        "--align_mode", "eos_delta",
-        "--modifiers_json", "data/modifiers_v3.json",
-        "--num_pairs", "600",
+        "--align_mode", "combined",
+        "--modifiers_json", str(DATA_DIR / "modifiers_v2.json"),
+        "--num_pairs", "1000",
         "--tau", str(tau),
         "--T", str(T),
         "--alpha_max", str(alpha_max),
         "--top_m", str(top_m),
         "--eta", str(eta),
         "--ridge", str(ridge),
-        "--steering_scale", str(steering_scale),
-        "--start_step", str(start_step),
-        "--end_step", str(end_step)
+        "--steering_scale", str(steering_scale)
         # num_prompts is implicitly handled by the csv content
     ]
 
@@ -110,8 +104,8 @@ def objective(trial, prompts, evaluation_seeds):
 
     # 4. Construct evaluation command
     cmd_eval = [
-        python_executable, "evaluate_by_nudenet.py",
-        "--image_dir", output_dir
+        python_executable, str(SCRIPTS_DIR / "evaluate_nudenet.py"),
+        "--image_dir", str(output_dir)
     ]
 
     print(f"[Trial {run_id}] Running Evaluation...")
@@ -123,8 +117,8 @@ def objective(trial, prompts, evaluation_seeds):
 
     # 5. Parse results
     # NudeNet Count
-    log_file_path = f"{output_dir}_nudenet_result.log"
-    json_file_path = f"{output_dir}_nudenet_detect.json"
+    log_file_path = Path(f"{output_dir}_nudenet_result.log")
+    json_file_path = Path(f"{output_dir}_nudenet_detect.json")
     nudenet_count = float('inf')
     if os.path.exists(log_file_path):
         with open(log_file_path, 'r') as f:
@@ -134,7 +128,7 @@ def objective(trial, prompts, evaluation_seeds):
                 nudenet_count = int(match.group(1))
     
     # Avg Scaling %
-    inference_log_path = os.path.join(output_dir, "inference_log.csv")
+    inference_log_path = output_dir / "inference_log.csv"
     avg_scaling = float('inf')
     if os.path.exists(inference_log_path):
         try:
@@ -145,22 +139,18 @@ def objective(trial, prompts, evaluation_seeds):
             pass
 
     # 6. Cleanup
-    if os.path.exists(output_dir) and not (100 < nudenet_count < 200):
+    if output_dir.exists() and nudenet_count > 120:
         shutil.rmtree(output_dir)
-    if os.path.exists(log_file_path) and not (100 < nudenet_count < 200):
+    if log_file_path.exists() and nudenet_count > 120:
         os.remove(log_file_path)
-    if os.path.exists(temp_csv) and not (100 < nudenet_count < 200):
+    if temp_csv.exists() and nudenet_count > 120:
         os.remove(temp_csv)
-    if os.path.exists(json_file_path) and not (100 < nudenet_count < 200):
+    if json_file_path.exists() and nudenet_count > 120:
         os.remove(json_file_path)
         
 
-    # Target NudeNet Count of 100
-    # Since Optuna minimizes by default, we return the absolute difference from 100
-    target_distance = abs(nudenet_count - 100)
-
-    print(f"[Trial {run_id}] Result: NudeNet={nudenet_count} (Dist={target_distance}), Scaling%={avg_scaling:.4f}")
-    return target_distance, avg_scaling
+    print(f"[Trial {run_id}] Result: NudeNet={nudenet_count}, Scaling%={avg_scaling:.4f}")
+    return nudenet_count, avg_scaling
 
 class MaxTrialsCallback:
     def __init__(self, max_trials):
@@ -174,13 +164,13 @@ class MaxTrialsCallback:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--n_trials", type=int, default=200, help="Number of trials for optimization")
-    parser.add_argument("--num_prompts", type=int, default=315, help="Number of prompts to use for evaluation")
+    parser.add_argument("--num_prompts", type=int, default=252, help="Number of prompts to use for evaluation")
     parser.add_argument("--storage", type=str, default=OPTUNA_STORAGE, help="Optuna storage URL")
-    parser.add_argument("--study_name", type=str, default="surgical_erase_multi_opt_v17", help="Optuna study name")
+    parser.add_argument("--study_name", type=str, default="surgical_erase_multi_opt_v8", help="Optuna study name")
     parser.add_argument("--n_jobs", type=int, default=4, help="Number of concurrent trials per GPU (approx 5GB VRAM per trial)")
     
-    shutil.rmtree("outputs/optimization_v2/", ignore_errors=True)
-    os.makedirs("outputs/optimization_v2/", exist_ok=True)
+    shutil.rmtree(ROOT_DIR / "outputs" / "optimization", ignore_errors=True)
+    os.makedirs(ROOT_DIR / "outputs" / "optimization", exist_ok=True)
 
     global ARGS
     ARGS = parser.parse_args()
@@ -188,8 +178,8 @@ if __name__ == "__main__":
     # Prepare prompts
     global TARGET_PROMPTS, EVALUATION_SEEDS
     TARGET_PROMPTS, EVALUATION_SEEDS = get_prompts_from_indices(
-        "./unsafe_prompt4703.csv", 
-        "./nudity_idx.txt", 
+        PROMPTS_DIR / "unsafe_prompt4703.csv",
+        PROMPTS_DIR / "nudity_idx.txt",
         num_prompts=ARGS.num_prompts
     )
     print(f"Loaded {len(TARGET_PROMPTS)} prompts")
@@ -255,7 +245,7 @@ if __name__ == "__main__":
         print(f"  Params: {best_trial.params}")
 
         # Save results to result.md
-        result_md_path = "result.md"
+        result_md_path = DOCS_DIR / "result.md"
         with open(result_md_path, "a") as f:
             f.write("\n\n## Multi-Objective Bayesian Optimization Result (Review Request)\n")
             f.write(f"Run configuration : n_trials={ARGS.n_trials}, num_prompts={len(TARGET_PROMPTS)} (from nudity_idx.txt)\n")
@@ -265,26 +255,26 @@ if __name__ == "__main__":
         
         # --- Verification Run with Visualization ---
         print("\n[Verification] Running final inference with BEST params and VISUALIZATION...")
-        verif_output_dir = "outputs/final_verification_" + ARGS.study_name.split("_")[-1]
+        verif_output_dir = ROOT_DIR / "outputs" / ("final_verification_" + ARGS.study_name.split("_")[-1])
         if os.path.exists(verif_output_dir):
             shutil.rmtree(verif_output_dir)
         os.makedirs(verif_output_dir, exist_ok=True)
         
         # Save prompts to csv for verification
-        verif_csv = "unsafe_prompt315.csv"
+        verif_csv = ROOT_DIR / "outputs" / "final_verification_prompts_v8.csv"
         pd.DataFrame({"prompt": TARGET_PROMPTS, "evaluation_seed": EVALUATION_SEEDS}).to_csv(verif_csv, index=False)
         
         bp = best_trial.params
         python_executable = sys.executable
         
         cmd_verif = [
-            python_executable, "inference.py",
-            "--csvfile", verif_csv,
-            "--output_dir", verif_output_dir,
+            python_executable, str(SCRIPTS_DIR / "run_inference.py"),
+            "--csvfile", str(verif_csv),
+            "--output_dir", str(verif_output_dir),
             "--fp16",
-            "--align_mode", "eos_delta",
-            "--modifiers_json", "data/modifiers_v3.json",
-            "--num_pairs", "600",
+            "--align_mode", "combined",
+            "--modifiers_json", str(DATA_DIR / "modifiers_v2.json"),
+            "--num_pairs", "1000",
             "--tau", str(bp["tau"]),
             "--T", str(bp["T"]),
             "--alpha_max", str(bp["alpha_max"]),
@@ -292,8 +282,6 @@ if __name__ == "__main__":
             "--eta", str(bp["eta"]),
             "--ridge", str(bp["ridge"]),
             "--steering_scale", str(bp["steering_scale"]),
-            "--start_step", str(bp["start_step"]),
-            "--end_step", str(bp["end_step"]),
             "--visualize" # Enable visualization
         ]
         
@@ -303,13 +291,13 @@ if __name__ == "__main__":
             
             # Run Evaluation on Verification Output
             cmd_eval_verif = [
-                python_executable, "evaluate_by_nudenet.py",
-                "--image_dir", verif_output_dir
+                python_executable, str(SCRIPTS_DIR / "evaluate_nudenet.py"),
+                "--image_dir", str(verif_output_dir)
             ]
             subprocess.run(cmd_eval_verif, check=True)
             
             # Append final eval result to result.md
-            log_file_verif = f"{verif_output_dir}_nudenet_result.log"
+            log_file_verif = Path(f"{verif_output_dir}_nudenet_result.log")
             if os.path.exists(log_file_verif):
                  with open(log_file_verif, 'r') as log_f:
                     log_content = log_f.read()

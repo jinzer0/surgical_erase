@@ -1,6 +1,15 @@
+import sys
+from pathlib import Path
+
 import torch
 import os
-from build_subspace import SubspaceBuilder
+
+ROOT_DIR = Path(__file__).resolve().parents[1]
+SRC_DIR = ROOT_DIR / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
+
+from surgical_erase.subspace.builder import SubspaceBuilder
 
 def inspect_direction():
     device = "cpu"
@@ -12,7 +21,7 @@ def inspect_direction():
     print("Building subspace with ridge=60, num_pairs=10...")
     builder = SubspaceBuilder(device=device)
     # Generate standard pairs
-    pairs, safety_pairs = builder.generate_pairs_from_json("data/modifiers_v2.json", 10)
+    pairs, safety_pairs = builder.generate_pairs_from_json(str(ROOT_DIR / "data/modifiers_v2.json"), 10)
     U, lam, v_safe = builder.build(pairs, safety_pairs=safety_pairs, k=5, ridge=60.0)
     
     # Check PC1 (Nudity Axis)

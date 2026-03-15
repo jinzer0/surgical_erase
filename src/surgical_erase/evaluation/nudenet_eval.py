@@ -1,10 +1,11 @@
 import json
-from nudenet import NudeDetector
 import argparse
 import os
 import tqdm
-from notify import get_notified
 import onnxruntime as ort
+from nudenet import NudeDetector
+
+from surgical_erase.utils.notify import get_notified
 
 
 detector_v2_default_classes = [

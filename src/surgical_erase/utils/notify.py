@@ -20,7 +20,7 @@ def get_notified(token=API_TOKEN, chat_id=CHAT_ID, task_name="Deep Learning Task
 
     Example:
     --------
-    from notify import get_notified
+    from surgical_erase.utils.notify import get_notified
     TOKEN = "YOUR_BOT_TOKEN"
     CHAT_ID = "YOUR_CHAT_ID"
 

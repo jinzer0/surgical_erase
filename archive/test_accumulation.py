@@ -1,5 +1,14 @@
+import sys
+from pathlib import Path
+
 import torch
-from safe_eos_aligner import SafeEOSAligner
+
+ROOT_DIR = Path(__file__).resolve().parents[1]
+SRC_DIR = ROOT_DIR / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
+
+from surgical_erase.aligners.safe_eos_aligner import SafeEOSAligner
 
 def test_accumulation():
     # Mock data

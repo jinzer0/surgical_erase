@@ -6,8 +6,15 @@ import re
 import argparse
 import sys
 import json
+from pathlib import Path
 import pandas as pd
 import functools
+
+ROOT_DIR = Path(__file__).resolve().parents[1]
+PROMPTS_DIR = ROOT_DIR / "data" / "prompts"
+DATA_DIR = ROOT_DIR / "data"
+DOCS_DIR = ROOT_DIR / "docs"
+SCRIPTS_DIR = ROOT_DIR / "scripts"
 OPTUNA_STORAGE="postgresql+psycopg2://optuna:0921@127.0.0.1:5433/optuna"
 
 def get_prompts_from_indices(csv_path, idx_file=None, num_prompts=252):
@@ -54,8 +61,8 @@ def objective(trial, prompts, evaluation_seeds):
     # 2. Setup trial-specific paths
     import uuid
     run_id = f"trial_{trial.number}_{uuid.uuid4().hex[:8]}"
-    output_dir = f"outputs/optimization/{run_id}"
-    temp_csv   = f"{output_dir}/trial_{trial.number}_prompts.csv"
+    output_dir = ROOT_DIR / "outputs" / "optimization" / run_id
+    temp_csv = output_dir / f"trial_{trial.number}_prompts.csv"
     
     # 3. Construct inference command
     python_executable = sys.executable 
@@ -69,9 +76,9 @@ def objective(trial, prompts, evaluation_seeds):
     df_prompts.to_csv(temp_csv, index=False)
     
     cmd_inference = [
-        python_executable, "inference.py",
-        "--csvfile", temp_csv,
-        "--output_dir", output_dir,
+        python_executable, str(SCRIPTS_DIR / "run_inference.py"),
+        "--csvfile", str(temp_csv),
+        "--output_dir", str(output_dir),
         "--fp16",
         "--align_mode", "steer",
         "--tau", str(tau),
@@ -92,8 +99,8 @@ def objective(trial, prompts, evaluation_seeds):
 
     # 4. Construct evaluation command
     cmd_eval = [
-        python_executable, "evaluate_by_nudenet.py",
-        "--image_dir", output_dir
+        python_executable, str(SCRIPTS_DIR / "evaluate_nudenet.py"),
+        "--image_dir", str(output_dir)
     ]
 
     print(f"[Trial {run_id}] Running Evaluation...")
@@ -105,7 +112,7 @@ def objective(trial, prompts, evaluation_seeds):
 
     # 5. Parse results
     # NudeNet Count
-    log_file_path = f"{output_dir}_nudenet_result.log"
+    log_file_path = Path(f"{output_dir}_nudenet_result.log")
     nudenet_count = float('inf')
     if os.path.exists(log_file_path):
         with open(log_file_path, 'r') as f:
@@ -115,7 +122,7 @@ def objective(trial, prompts, evaluation_seeds):
                 nudenet_count = int(match.group(1))
     
     # Avg Scaling %
-    inference_log_path = os.path.join(output_dir, "inference_log.csv")
+    inference_log_path = output_dir / "inference_log.csv"
     avg_scaling = float('inf')
     if os.path.exists(inference_log_path):
         try:
@@ -126,11 +133,11 @@ def objective(trial, prompts, evaluation_seeds):
             pass
 
     # 6. Cleanup
-    if os.path.exists(output_dir):
+    if output_dir.exists():
         shutil.rmtree(output_dir)
-    if os.path.exists(log_file_path):
+    if log_file_path.exists():
         os.remove(log_file_path)
-    if os.path.exists(temp_csv):
+    if temp_csv.exists():
         os.remove(temp_csv)
         
 
@@ -160,8 +167,8 @@ if __name__ == "__main__":
     # Prepare prompts
     global TARGET_PROMPTS, EVALUATION_SEEDS
     TARGET_PROMPTS, EVALUATION_SEEDS = get_prompts_from_indices(
-        "./unsafe_prompt4703.csv", 
-        "./nudity_idx.txt", 
+        PROMPTS_DIR / "unsafe_prompt4703.csv",
+        PROMPTS_DIR / "nudity_idx.txt",
         num_prompts=ARGS.num_prompts
     )
     print(f"Loaded {len(TARGET_PROMPTS)} prompts")
@@ -226,7 +233,7 @@ if __name__ == "__main__":
         print(f"  Params: {best_trial.params}")
 
         # Save results to result.md
-        result_md_path = "result.md"
+        result_md_path = DOCS_DIR / "result.md"
         with open(result_md_path, "a") as f:
             f.write("\n\n## Multi-Objective Bayesian Optimization Result (Review Request)\n")
             f.write(f"Run configuration : n_trials={ARGS.n_trials}, num_prompts={len(TARGET_PROMPTS)} (from nudity_idx.txt)\n")
@@ -236,22 +243,22 @@ if __name__ == "__main__":
         
         # --- Verification Run with Visualization ---
         print("\n[Verification] Running final inference with BEST params and VISUALIZATION...")
-        verif_output_dir = "outputs/final_verification_90"
+        verif_output_dir = ROOT_DIR / "outputs" / "final_verification_90"
         if os.path.exists(verif_output_dir):
             shutil.rmtree(verif_output_dir)
         os.makedirs(verif_output_dir, exist_ok=True)
         
         # Save prompts to csv for verification
-        verif_csv = "outputs/final_verification_prompts.csv"
+        verif_csv = ROOT_DIR / "outputs" / "final_verification_prompts.csv"
         pd.DataFrame({"prompt": TARGET_PROMPTS, "evaluation_seed": EVALUATION_SEEDS}).to_csv(verif_csv, index=False)
         
         bp = best_trial.params
         python_executable = sys.executable
         
         cmd_verif = [
-            python_executable, "inference.py",
-            "--csvfile", verif_csv,
-            "--output_dir", verif_output_dir,
+            python_executable, str(SCRIPTS_DIR / "run_inference.py"),
+            "--csvfile", str(verif_csv),
+            "--output_dir", str(verif_output_dir),
             "--fp16",
             "--align_mode", "steer",
             "--tau", str(bp["tau"]),
@@ -269,13 +276,13 @@ if __name__ == "__main__":
             
             # Run Evaluation on Verification Output
             cmd_eval_verif = [
-                python_executable, "evaluate_by_nudenet.py",
-                "--image_dir", verif_output_dir
+                python_executable, str(SCRIPTS_DIR / "evaluate_nudenet.py"),
+                "--image_dir", str(verif_output_dir)
             ]
             subprocess.run(cmd_eval_verif, check=True)
             
             # Append final eval result to result.md
-            log_file_verif = f"{verif_output_dir}_nudenet_result.log"
+            log_file_verif = Path(f"{verif_output_dir}_nudenet_result.log")
             if os.path.exists(log_file_verif):
                  with open(log_file_verif, 'r') as log_f:
                     log_content = log_f.read()

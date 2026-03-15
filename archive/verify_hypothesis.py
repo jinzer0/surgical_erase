@@ -1,11 +1,20 @@
+import sys
+from pathlib import Path
+
 import torch
 import argparse
-from build_subspace import SubspaceBuilder
 import matplotlib.pyplot as plt
 import numpy as np
 
+ROOT_DIR = Path(__file__).resolve().parents[1]
+SRC_DIR = ROOT_DIR / "src"
+if str(SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(SRC_DIR))
+
+from surgical_erase.subspace.builder import SubspaceBuilder
+
 def verify_geometric_hypothesis(
-    subspace_path="data/subspace.pt",
+    subspace_path=str(ROOT_DIR / "data/subspace.pt"),
     device="cuda"
 ):
     print(f"Loading subspace from {subspace_path}...")
@@ -106,7 +115,7 @@ def verify_geometric_hypothesis(
     plt.grid(axis='x', linestyle='--', alpha=0.7)
     
     plt.tight_layout()
-    plt.savefig("hypothesis_verification.png")
+    plt.savefig(ROOT_DIR / "outputs/hypothesis_verification.png")
     print("\nSaved visualization to 'hypothesis_verification.png'")
 
 if __name__ == "__main__":
